@@ -142,7 +142,7 @@
                     <div class="space-y-4">
                         <div class="flex justify-between items-center">
                             <h3 class="text-lg font-semibold">TDS Readings</h3>
-                            <span class="text-sm text-gray-500">Last updated: 5 mins ago</span>
+                           
                         </div>
                         <div class="bg-blue-50 p-4 rounded-lg">
                             <div class="text-center">
@@ -157,7 +157,7 @@
                     <div class="space-y-4">
                         <div class="flex justify-between items-center">
                             <h3 class="text-lg font-semibold">pH Readings</h3>
-                            <span class="text-sm text-gray-500">Last updated: 5 mins ago</span>
+                            
                         </div>
                         <div class="bg-green-50 p-4 rounded-lg">
                             <div class="text-center">
@@ -505,7 +505,7 @@ document.getElementById('download-all-data').addEventListener('click', async () 
                 div.innerHTML = `
                     <h3 class="font-bold mb-2">Rack ${rack}</h3>
                     <input type="number" 
-                           step="${type === 'ph' ? '0.1' : '1'}"
+                           step="${type === 'ph' ? '0.01' : '1'}"
                            data-rack="${rack}"
                            placeholder="${type === 'tds' ? 'TDS (ppm)' : 'pH value'}"
                            class="input-field">
