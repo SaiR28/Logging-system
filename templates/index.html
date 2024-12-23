@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Kissan Farm Monitor</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <style>
+        /* Base styles */
+        .section-button.active { background-color: #16a34a; color: white; }
+        .measurement-type-button.active { background-color: #2563eb; color: white; }
+        .card { background: white; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.12); margin-bottom: 1rem; padding: 1rem; }
+        .upload-area { border: 2px dashed #e5e7eb; border-radius: 0.5rem; padding: 1.5rem; text-align: center; cursor: pointer; }
+        .upload-area:hover { border-color: #16a34a; }
+        .input-field { width: 100%; padding: 0.5rem; border: 1px solid #e5e7eb; border-radius: 0.375rem; margin-bottom: 1rem; }
+        .btn { padding: 0.5rem 1rem; border-radius: 0.375rem; cursor: pointer; transition: all 0.2s; }
+        .btn-green { background-color: #16a34a; color: white; }
+        .btn-green:hover { background-color: #15803d; }
+    
+        /* Mobile-friendly styles */
+        @media (max-width: 768px) {
+            .section-button {
+                padding: 0.75rem !important;
+                font-size: 0.875rem;
+                min-height: 3rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                line-height: 1.2;
+            }
+    
+            .btn {
+                padding: 0.625rem 0.875rem;
+                font-size: 0.875rem;
+                height: auto;
+                white-space: nowrap;
+            }
+    
+            .card {
+                padding: 0.875rem;
+            }
+    
+            .input-field {
+                font-size: 1rem;
+                padding: 0.625rem;
+                height: auto;
+            }
+    
+            /* Improved touch targets */
+            .remove-image {
+                width: 32px;
+                height: 32px;
+                font-size: 1.25rem;
+            }
+    
+            /* Better spacing for mobile forms */
+            .space-y-4 > * {
+                margin-bottom: 1rem !important;
+            }
+    
+            /* Mobile-friendly image grid */
+            .image-preview-container {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.5rem;
+            }
+    
+            /* Adjust modal padding for mobile */
+            #image-modal .max-w-4xl {
+                margin: 1rem;
+            }
+    
+            /* Mobile-friendly search form */
+            #search-form {
+                flex-direction: column;
+                width: 100%;
+            }
+    
+            #search-form .input-field {
+                margin-bottom: 0.5rem;
+            }
+    
+            #search-form .btn {
+                width: 100%;
+            }
+    
+            /* Download button mobile adjustment */
+            #download-all-data {
+                width: 100%;
+                margin-top: 0.5rem;
+                margin-left: 0 !important;
+            }
+    
+            /* Mobile-friendly measurement inputs */
+            #measurement-inputs {
+                grid-template-columns: 1fr !important;
+            }
+    
+            /* Timeline content mobile adjustments */
+            #timeline-content .grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+    
+            /* Better spacing for timeline entries */
+            .timeline-entry {
+                padding: 1rem !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="max-w-6xl mx-auto p-4">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-green-700">Neural Kissan Farm Monitor</h1>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6" id="nav-buttons">
+            <button class="section-button p-3 rounded-lg text-center bg-gray-100 active" data-section="readings">Latest Readings</button>
+            <button class="section-button p-3 rounded-lg text-center bg-gray-100" data-section="measurements">TDS/pH Logs</button>
+            <button class="section-button p-3 rounded-lg text-center bg-gray-100" data-section="plantnotes">Plant Notes</button>
+            <button class="section-button p-3 rounded-lg text-center bg-gray-100" data-section="tracking">Growth Tracking</button>
+            <button class="section-button p-3 rounded-lg text-center bg-gray-100" data-section="search">Search & Timeline</button>
+        </div>
+
+        <!-- Content Sections -->
+        <div id="content-area">
+            <!-- Latest Readings Section -->
+            <div id="readings-section" class="section card">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">Latest Readings Overview</h2>
+                    <button class="btn btn-green flex items-center" id="download-csv">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        Download All Data
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- TDS Section -->
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-lg font-semibold">TDS Readings</h3>
+                            <span class="text-sm text-gray-500">Last updated: 5 mins ago</span>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <div class="text-center">
+                                <p class="text-sm text-gray-600">Average TDS</p>
+                                <p class="text-3xl font-bold text-blue-700" id="tds-average">850 ppm</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4" id="tds-readings"></div>
+                    </div>
+                    
+                    <!-- pH Section -->
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-lg font-semibold">pH Readings</h3>
+                            <span class="text-sm text-gray-500">Last updated: 5 mins ago</span>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <div class="text-center">
+                                <p class="text-sm text-gray-600">Average pH</p>
+                                <p class="text-3xl font-bold text-green-700" id="ph-average">6.5</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4" id="ph-readings"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Update the measurements section for mobile -->
+<div id="measurements-section" class="section card hidden">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 space-y-2 sm:space-y-0">
+        <h2 class="text-xl font-bold">Quick Measurement Entry</h2>
+        <div class="flex space-x-2 w-full sm:w-auto">
+            <button class="measurement-type-button flex-1 sm:flex-none px-4 py-2 rounded active" data-type="tds">
+                TDS
+            </button>
+            <button class="measurement-type-button flex-1 sm:flex-none px-4 py-2 rounded" data-type="ph">
+                pH
+            </button>
+        </div>
+    </div>
+    <form id="measurement-form">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4" id="measurement-inputs"></div>
+        <button type="submit" class="btn btn-green mt-4 w-full">Save Readings</button>
+    </form>
+</div>
+
+            <!-- Plant Notes Section -->
+            <div id="plantnotes-section" class="section card hidden">
+                <h2 class="text-xl font-bold mb-4">Plant Notes</h2>
+                <form id="plant-notes-form">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Plant ID</label>
+                            <input type="text" name="plant_id" placeholder="Enter ID (e.g., C111)" class="input-field" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Plant Image *</label>
+                            <div class="upload-area">
+                                <input type="file" name="image" accept="image/*" class="hidden image-input" required>
+                                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                <div class="mt-2">
+                                    <button type="button" class="text-sm text-blue-600 upload-trigger">Upload Image</button>
+                                    <p class="text-xs text-gray-500 mt-1">(Will create new plant if ID doesn't exist)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Notes</label>
+                            <textarea name="notes" class="input-field" rows="3" placeholder="Add notes about the plant..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-green w-full">Save Notes</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Growth Tracking Section -->
+            <div id="tracking-section" class="section card hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">Growth Tracking</h2>
+        <div class="flex w-full sm:w-auto mt-2 sm:mt-0 sm:ml-auto">
+            <button class="flex-1 sm:flex-none px-4 py-2 rounded-l bg-blue-600 text-white" id="flowering-btn">Flowering</button>
+            <button class="flex-1 sm:flex-none px-4 py-2 rounded-r bg-gray-100" id="fruiting-btn">Fruiting</button>
+        </div>
+                </div>
+                <form id="growth-tracking-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Plant ID</label>
+                        <input type="text" name="plant_id" placeholder="Enter ID (e.g., C111)" class="input-field" required>
+                    </div>
+        
+                    <input type="hidden" name="type" id="growth-type" value="flowering">
+        
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Stage</label>
+                        <select name="stage" class="input-field" id="growth-stage" required>
+                            <option value="">Select stage</option>
+                        </select>
+                    </div>
+        
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Count</label>
+                        <input type="number" name="count" min="0" id="count-input" class="input-field" required>
+                    </div>
+        
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Images</label>
+                        <div class="image-preview-container mb-4" id="image-previews"></div>
+                        <div class="upload-area" id="image-upload-area">
+                            <input type="file" name="images" accept="image/*" multiple class="hidden" id="growth-images">
+                            <svg class="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <div class="mt-2">
+                                <button type="button" class="text-sm text-blue-600" id="add-images-btn">Add Images</button>
+                                <p class="text-xs text-gray-500 mt-1">Click to add multiple images</p>
+                            </div>
+                        </div>
+                    </div>
+        
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Notes</label>
+                        <textarea name="notes" class="input-field" rows="3" placeholder="Add any observations..."></textarea>
+                    </div>
+        
+                    <button type="submit" class="btn btn-green w-full">Save Record</button>
+                </form>
+            </div>
+
+           <!-- Updated Search Section with Plant Grid -->
+           <div id="search-section" class="section card hidden">
+            <div class="mb-6">
+                <h2 class="text-xl font-bold mb-4">Plant Search</h2>
+                <div class="flex flex-col space-y-3">
+                    <form id="search-form" class="w-full">
+                        <input type="text" id="search-input" placeholder="Search plant ID (e.g., C111)" 
+                               class="input-field mb-2 w-full">
+                        <button type="submit" class="btn btn-green w-full flex items-center justify-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                            Search
+                        </button>
+                    </form>
+                    <button id="download-all-data" class="btn btn-green w-full flex items-center justify-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        Download All Data
+                    </button>
+                </div>
+            </div>
+
+        <!-- All Plants Grid -->
+        <div id="all-plants-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            <!-- Plants will be populated here -->
+        </div>
+    </div>
+
+    <!-- Plant Timeline (Initially Hidden) -->
+    <div id="plant-timeline" class="hidden">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+            <div class="flex items-center gap-3">
+                <button onclick="showAllPlants()" class="text-blue-600 hover:text-blue-800 flex items-center">
+                    <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                    Back to All Plants
+                </button>
+                <h2 class="text-xl font-bold">Plant Timeline</h2>
+            </div>
+            <span id="current-plant-id" class="text-sm bg-green-100 text-green-800 px-3 py-1 rounded-full"></span>
+        </div>
+        <div id="timeline-content" class="space-y-4">
+            <!-- Timeline entries will be populated here -->
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div id="image-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+        <div class="max-w-4xl w-full mx-auto">
+            <div class="bg-white rounded-lg shadow-xl">
+                <div class="p-4 flex justify-between items-center border-b">
+                    <h3 class="text-lg font-medium">Image View</h3>
+                    <button class="text-gray-500 hover:text-gray-700" onclick="closeImageModal()">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="p-4">
+                    <img id="modal-image" class="max-h-[80vh] mx-auto" alt="Plant image">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+        
+
+    <script>
+        // Function to open image modal
+function openImageModal(imageSrc) {
+    const modal = document.getElementById('image-modal');
+    const modalImg = document.getElementById('modal-image');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    modalImg.src = imageSrc;
+    document.body.style.overflow = 'hidden';
+}
+
+// Function to close image modal
+function closeImageModal() {
+    const modal = document.getElementById('image-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.style.overflow = 'auto';
+}
+
+// Close modal when clicking outside the image
+document.getElementById('image-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'image-modal') {
+        closeImageModal();
+    }
+});
+
+// Download all data button handler
+document.getElementById('download-all-data').addEventListener('click', async () => {
+    try {
+        window.location.href = '/api/plants/download-all';
+    } catch (error) {
+        console.error('Error downloading data:', error);
+        alert('Error downloading plant data');
+    }
+});
+
+        // Add this to your existing JavaScript
+        document.getElementById('add-images-btn').addEventListener('click', () => {
+            document.getElementById('growth-images').click();
+        });
+
+        document.getElementById('growth-images').addEventListener('change', function() {
+            const previewContainer = document.getElementById('image-previews');
+            
+            if (this.files) {
+                Array.from(this.files).forEachArray.from(this.files).forEach((file, index) => {
+                    const preview = document.createElement('div');
+                    preview.className = 'image-preview-wrapper';
+                    
+                    const img = document.createElement('img');
+                    img.className = 'w-full h-32 object-cover rounded';
+                    img.file = file;
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'remove-image';
+                    removeBtn.innerHTML = '×';
+                    removeBtn.onclick = (e) => {
+                        e.preventDefault();
+                        preview.remove();
+                    };
+                    
+                    preview.appendChild(img);
+                    preview.appendChild(removeBtn);
+                    previewContainer.appendChild(preview);
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => { img.src = e.target.result; };
+                    reader.readAsDataURL(file);
+                });
+            }
+        });
+
+        // Section navigation
+        document.querySelectorAll('.section-button').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.section-button').forEach(b => {
+                    b.classList.remove('active');
+                    b.classList.add('bg-gray-100');
+                });
+                button.classList.add('active');
+                button.classList.remove('bg-gray-100');
+
+                document.querySelectorAll('.section').forEach(section => {
+                    section.classList.add('hidden');
+                });
+                document.getElementById(button.dataset.section + '-section').classList.remove('hidden');
+            });
+        });
+
+        // Measurement type handling
+        document.querySelectorAll('.measurement-type-button').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.measurement-type-button').forEach(b => {
+                    b.classList.remove('active');
+                });
+                button.classList.add('active');
+                updateMeasurementInputs(button.dataset.type);
+            });
+        });
+
+        // Growth stages
+        const floweringStages = [
+            'Bud Formation',
+            'Early Flowering',
+            'Full Bloom',
+            'Post Bloom'
+        ];
+
+        const fruitingStages = [
+            'Fruit Set',
+            'Early Development',
+            'Mature Fruit',
+            'Harvest Ready'
+        ];
+
+        function updateGrowthStages(type) {
+            const stageSelect = document.getElementById('growth-stage');
+            const stages = type === 'flowering' ? floweringStages : fruitingStages;
+            stageSelect.innerHTML = '<option value="">Select stage</option>';
+            stages.forEach(stage => {
+                const option = document.createElement('option');
+                option.value = stage;
+                option.textContent = stage;
+                stageSelect.appendChild(option);
+            });
+
+            const countInput = document.getElementById('count-input');
+            countInput.placeholder = `Number of ${type === 'flowering' ? 'flowers' : 'fruits'}`;
+        }
+
+        // Handle flowering/fruiting toggle
+        document.getElementById('flowering-btn').addEventListener('click', function() {
+            this.classList.add('bg-blue-600', 'text-white');
+            this.classList.remove('bg-gray-100');
+            document.getElementById('fruiting-btn').classList.remove('bg-blue-600', 'text-white');
+            document.getElementById('fruiting-btn').classList.add('bg-gray-100');
+            document.getElementById('growth-type').value = 'flowering';
+            updateGrowthStages('flowering');
+        });
+
+        document.getElementById('fruiting-btn').addEventListener('click', function() {
+            this.classList.add('bg-blue-600', 'text-white');
+            this.classList.remove('bg-gray-100');
+            document.getElementById('flowering-btn').classList.remove('bg-blue-600', 'text-white');
+            document.getElementById('flowering-btn').classList.add('bg-gray-100');
+            document.getElementById('growth-type').value = 'fruiting';
+            updateGrowthStages('fruiting');
+        });
+
+        // Create measurement inputs
+        function updateMeasurementInputs(type) {
+            const container = document.getElementById('measurement-inputs');
+            container.innerHTML = '';
+            
+            [1, 2, 3, 4].forEach(rack => {
+                const div = document.createElement('div');
+                div.className = 'card';
+                div.innerHTML = `
+                    <h3 class="font-bold mb-2">Rack ${rack}</h3>
+                    <input type="number" 
+                           step="${type === 'ph' ? '0.1' : '1'}"
+                           data-rack="${rack}"
+                           placeholder="${type === 'tds' ? 'TDS (ppm)' : 'pH value'}"
+                           class="input-field">
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // Handle image uploads
+        document.querySelectorAll('.upload-trigger').forEach(button => {
+            button.addEventListener('click', () => {
+                button.closest('.upload-area').querySelector('.image-input').click();
+            });
+        });
+
+        document.querySelectorAll('.image-input').forEach(input => {
+            input.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    const preview = document.createElement('img');
+                    preview.className = 'w-full h-32 object-cover rounded mt-2';
+                    preview.file = this.files[0];
+                    
+                    const container = this.closest('.upload-area');
+                    const existingPreview = container.querySelector('img');
+                    if (existingPreview) {
+                        existingPreview.remove();
+                    }
+                    container.appendChild(preview);
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => { preview.src = e.target.result; };
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+        });
+
+        // API Functions
+        async function fetchLatestReadings() {
+            try {
+                const response = await fetch('/api/measurements/latest');
+                const data = await response.json();
+                updateReadingsDisplay(data);
+            } catch (error) {
+                console.error('Error fetching readings:', error);
+            }
+        }
+
+        async function saveMeasurements(type, readings) {
+            try {
+                const response = await fetch('/api/measurements', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ type, readings })
+                });
+                const data = await response.json();
+                alert(data.message);
+                fetchLatestReadings();
+            } catch (error) {
+                console.error('Error saving measurements:', error);
+                alert('Error saving measurements');
+            }
+        }
+
+        async function savePlantNote(formData) {
+                const response = await fetch('/api/plants', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                alert(data.message);
+                formData.target.reset();
+            
+        }
+
+        async function saveGrowthRecord(formData) {
+            try {
+                const response = await fetch('/api/growth-records', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                alert(data.message);
+                formData.target.reset();
+            } catch (error) {
+                console.error('Error saving growth record:', error);
+                alert('Error saving growth record');
+            }
+        }
+
+        // Timeline Functions
+        async function fetchPlantTimeline(plantId) {
+            try {
+                const response = await fetch(`/api/plants/${plantId}/timeline`);
+                const data = await response.json();
+                
+                // Show timeline section and update plant ID
+                const timelineSection = document.getElementById('plant-timeline');
+                timelineSection.classList.remove('hidden');
+                
+                // Update plant ID display
+                document.getElementById('current-plant-id').textContent = `Plant ${plantId}`;
+                
+                // Display timeline content
+                displayTimeline(data);
+            } catch (error) {
+                console.error('Error fetching timeline:', error);
+                alert('Error fetching plant timeline');
+            }
+        }
+
+        function displayTimeline(data) {
+    const timelineContainer = document.getElementById('timeline-content');
+    timelineContainer.innerHTML = '';
+
+    if (!data.timeline || data.timeline.length === 0) {
+        timelineContainer.innerHTML = '<p class="text-gray-500 text-center py-4">No records found for this plant.</p>';
+        return;
+    }
+
+    data.timeline.forEach(entry => {
+        const entryElement = document.createElement('div');
+        entryElement.className = 'p-4 bg-gray-50 rounded-lg shadow-sm mb-4';
+        
+        let content = `
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <p class="font-medium">${new Date(entry.date).toLocaleDateString()}</p>
+                    <p class="text-sm text-gray-600">${getEntryTypeDisplay(entry.type)}</p>
+                </div>
+            </div>
+        `;
+
+        if (entry.type === 'plant_created') {
+            content += `<p class="text-gray-700">Plant registered in system</p>`;
+        } else if (entry.type === 'note') {
+            content += `
+                <div class="mt-2">
+                    ${entry.notes ? `<p class="text-gray-700">${entry.notes}</p>` : ''}
+                    ${entry.image ? `
+                        <div class="mt-2">
+                            <img src="/uploads/${entry.image}" 
+                                 onclick="openImageModal('/uploads/${entry.image}')"
+                                 class="w-32 h-32 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity" 
+                                 alt="Plant image">
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        } else if (entry.type === 'flowering_record' || entry.type === 'fruiting_record') {
+            content += `
+                <div class="mt-2">
+                    <p class="text-gray-700"><span class="font-medium">Stage:</span> ${entry.stage}</p>
+                    <p class="text-gray-700"><span class="font-medium">Count:</span> ${entry.count}</p>
+                    ${entry.notes ? `<p class="text-gray-700"><span class="font-medium">Notes:</span> ${entry.notes}</p>` : ''}
+                    ${entry.images && entry.images.length > 0 ? `
+                        <div class="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            ${entry.images.map(img => `
+                                <img src="/uploads/${img}" 
+                                     onclick="openImageModal('/uploads/${img}')"
+                                     class="w-full h-32 object-cover rounded cursor-pointer hover:opacity-90 transition-opacity" 
+                                     alt="Growth record image">
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        entryElement.innerHTML = content;
+        timelineContainer.appendChild(entryElement);
+    });
+}
+
+        function getEntryTypeDisplay(type) {
+            const typeMap = {
+                'plant_created': 'Plant Registration',
+                'note': 'Plant Note',
+                'flowering_record': 'Flowering Update',
+                'fruiting_record': 'Fruiting Update'
+            };
+            return typeMap[type] || type;
+        }
+
+        // UI Update Functions
+        function updateReadingsDisplay(data) {
+            updateReadingSection('tds', data.tds);
+            updateReadingSection('ph', data.ph);
+        }
+
+        function updateReadingSection(type, data) {
+            const avgElement = document.getElementById(`${type}-average`);
+            if (avgElement) {
+                avgElement.textContent = type === 'tds' ? 
+                    `${data.average.toFixed(0)} ppm` : 
+                    data.average.toFixed(1);
+            }
+
+            const readingsContainer = document.getElementById(`${type}-readings`);
+            if (readingsContainer) {
+                readingsContainer.innerHTML = '';
+                Object.entries(data.readings).forEach(([rack, value]) => {
+                    const reading = document.createElement('div');
+                    reading.className = 'bg-gray-50 p-3 rounded-lg';
+                    reading.innerHTML = `
+                        <p class="text-sm text-gray-600">Rack ${rack}</p>
+                        <p class="text-xl font-semibold">${type === 'tds' ? value.toFixed(0) + ' ppm' : value.toFixed(1)}</p>
+                    `;
+                    readingsContainer.appendChild(reading);
+                });
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchLatestReadings();
+            updateMeasurementInputs('tds');
+            updateGrowthStages('flowering');
+
+            // Form submissions
+            document.getElementById('measurement-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const type = document.querySelector('.measurement-type-button.active').dataset.type;
+                const readings = {};
+                document.querySelectorAll('#measurement-inputs input').forEach(input => {
+                    readings[input.dataset.rack] = input.value;
+                });
+                await saveMeasurements(type, readings);
+            });
+
+            document.getElementById('plant-notes-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                await savePlantNote(formData);
+            });
+
+            document.getElementById('growth-tracking-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                await saveGrowthRecord(formData);
+            });
+
+            document.getElementById('search-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const plantId = document.getElementById('search-input').value.trim();
+                if (plantId) {
+                    await fetchPlantTimeline(plantId);
+                } else {
+                    alert('Please enter a plant ID');
+                }
+            });
+        });
+
+        // Download CSV
+        document.getElementById('download-csv').addEventListener('click', () => {
+            window.location.href = '/api/measurements/download';
+        });
+    // Add this to your JavaScript functions
+async function fetchAllPlants() {
+    try {
+        const response = await fetch('/api/plants/all');
+        const data = await response.json();
+        displayAllPlants(data.plants);
+    } catch (error) {
+        console.error('Error fetching plants:', error);
+        alert('Error fetching plants');
+    }
+}
+
+function displayAllPlants(plants) {
+    const gridContainer = document.getElementById('all-plants-grid');
+    gridContainer.innerHTML = '';
+
+    if (!plants || plants.length === 0) {
+        gridContainer.innerHTML = '<p class="text-gray-500 text-center py-4 col-span-full">No plants found in the system.</p>';
+        return;
+    }
+
+    plants.forEach(plant => {
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-lg shadow-sm p-3 hover:shadow-md transition-shadow cursor-pointer';
+        
+        const latestImage = plant.latest_image || 'placeholder.jpg';
+        const latestStage = plant.latest_stage || 'No records';
+        const totalRecords = plant.total_records || 0;
+
+        card.innerHTML = `
+            <div class="w-24 h-24 mx-auto mb-2">  <!-- Changed from aspect-square to fixed size -->
+                <img src="/uploads/${latestImage}" 
+                     class="w-full h-full object-cover rounded-md" 
+                     alt="Plant ${plant.plant_id}"
+                     onerror="this.src='/static/placeholder.jpg'">
+            </div>
+            <div class="text-center space-y-0.5">  <!-- Changed to center alignment -->
+                <h3 class="font-semibold">Plant ${plant.plant_id}</h3>
+                <p class="text-sm text-gray-600">Stage: ${latestStage}</p>
+                <p class="text-sm text-gray-500">${totalRecords} records</p>
+            </div>
+        `;
+
+        card.addEventListener('click', () => {
+            document.getElementById('search-input').value = plant.plant_id;
+            fetchPlantTimeline(plant.plant_id);
+            document.getElementById('all-plants-grid').classList.add('hidden');
+        });
+
+        gridContainer.appendChild(card);
+    });
+}
+
+// Add function to show all plants
+function showAllPlants() {
+    document.getElementById('plant-timeline').classList.add('hidden');
+    document.getElementById('all-plants-grid').classList.remove('hidden');
+}
+
+// Update the DOMContentLoaded event to include fetching all plants
+document.addEventListener('DOMContentLoaded', () => {
+    // ... existing initializations ...
+    fetchAllPlants(); // Add this line
+});
+    </script>
+</body>
+</html>
