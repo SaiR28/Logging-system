@@ -251,15 +251,22 @@
         
                     <div>
                         <label class="block text-sm font-medium mb-2">Images</label>
-                        <div class="image-preview-container mb-4" id="image-previews"></div>
-                        <div class="upload-area" id="image-upload-area">
+                        <!-- Preview container -->
+                        <div id="image-previews" class="mb-4">
+                            <!-- Images will be previewed here -->
+                        </div>
+                        <!-- Upload area -->
+                        <div class="upload-area hover:bg-gray-50 transition-colors" id="image-upload-area">
                             <input type="file" name="images" accept="image/*" multiple class="hidden" id="growth-images">
-                            <svg class="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                            </svg>
-                            <div class="mt-2">
-                                <button type="button" class="text-sm text-blue-600" id="add-images-btn">Add Images</button>
-                                <p class="text-xs text-gray-500 mt-1">Click to add multiple images</p>
+                            <div class="flex flex-col items-center gap-2">
+                                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                <button type="button" class="text-blue-600 hover:text-blue-700 font-medium" id="add-images-btn">
+                                    Add Images
+                                </button>
+                                <p class="text-xs text-gray-500">Click to add multiple images</p>
                             </div>
                         </div>
                     </div>
@@ -386,37 +393,101 @@ document.getElementById('download-all-data').addEventListener('click', async () 
             document.getElementById('growth-images').click();
         });
 
-        document.getElementById('growth-images').addEventListener('change', function() {
-            const previewContainer = document.getElementById('image-previews');
+        // Image preview handling for growth tracking
+// Image preview handling for growth tracking
+document.getElementById('growth-images').addEventListener('change', function() {
+    const previewContainer = document.getElementById('image-previews');
+    previewContainer.innerHTML = ''; // Clear existing previews
+    
+    if (this.files && this.files.length > 0) {
+        // Add grid styling to container
+        previewContainer.className = 'flex flex-wrap gap-2 mt-2';
+        
+        Array.from(this.files).forEach((file, index) => {
+            const previewWrapper = document.createElement('div');
+            previewWrapper.className = 'relative w-24 h-24';
             
-            if (this.files) {
-                Array.from(this.files).forEachArray.from(this.files).forEach((file, index) => {
-                    const preview = document.createElement('div');
-                    preview.className = 'image-preview-wrapper';
-                    
-                    const img = document.createElement('img');
-                    img.className = 'w-full h-32 object-cover rounded';
-                    img.file = file;
-                    
-                    const removeBtn = document.createElement('button');
-                    removeBtn.className = 'remove-image';
-                    removeBtn.innerHTML = '×';
-                    removeBtn.onclick = (e) => {
-                        e.preventDefault();
-                        preview.remove();
-                    };
-                    
-                    preview.appendChild(img);
-                    preview.appendChild(removeBtn);
-                    previewContainer.appendChild(preview);
-                    
-                    const reader = new FileReader();
-                    reader.onload = (e) => { img.src = e.target.result; };
-                    reader.readAsDataURL(file);
-                });
-            }
+            // Create image preview
+            const preview = document.createElement('img');
+            preview.className = 'w-full h-full object-cover rounded-lg';
+            
+            // Create remove button
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'absolute top-0 right-0 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center shadow hover:bg-red-600 transition-colors text-xs';
+            removeBtn.innerHTML = '×';
+            removeBtn.onclick = (e) => {
+                e.preventDefault();
+                previewWrapper.remove();
+                
+                // If no more previews, remove grid styling
+                if (previewContainer.children.length === 0) {
+                    previewContainer.className = '';
+                }
+                
+                // Create new FileList without this image
+                const dt = new DataTransfer();
+                const input = document.getElementById('growth-images');
+                Array.from(input.files)
+                    .filter((_, i) => i !== index)
+                    .forEach(file => dt.items.add(file));
+                input.files = dt.files;
+            };
+            
+            // Read and display the image
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+            
+            // Assemble the preview
+            previewWrapper.appendChild(preview);
+            previewWrapper.appendChild(removeBtn);
+            previewContainer.appendChild(previewWrapper);
         });
+        
+        // Update the text in upload area
+        const uploadArea = document.getElementById('image-upload-area');
+        const addButton = uploadArea.querySelector('#add-images-btn');
+        addButton.textContent = 'Add More Images';
+    }
+});
 
+// Clear image previews when form is reset
+document.getElementById('growth-tracking-form').addEventListener('reset', () => {
+    const previewContainer = document.getElementById('image-previews');
+    previewContainer.innerHTML = '';
+    previewContainer.className = '';
+    
+    // Reset the add images button text
+    const addButton = document.getElementById('add-images-btn');
+    addButton.textContent = 'Add Images';
+});
+
+// Update form submission to include proper image handling
+document.getElementById('growth-tracking-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    try {
+        const formData = new FormData(e.target);
+        const response = await fetch('/api/growth-records', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert('Growth record saved successfully');
+            e.target.reset(); // This will trigger the reset event listener above
+        } else {
+            throw new Error(data.error || 'Failed to save growth record');
+        }
+    } catch (error) {
+        console.error('Error saving growth record:', error);
+        alert(error.message);
+    }
+});
         // Section navigation
         document.querySelectorAll('.section-button').forEach(button => {
             button.addEventListener('click', () => {
@@ -572,30 +643,51 @@ document.getElementById('download-all-data').addEventListener('click', async () 
         }
 
         async function savePlantNote(formData) {
-                const response = await fetch('/api/plants', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await response.json();
-                alert(data.message);
-                formData.target.reset();
-            
-        }
-
-        async function saveGrowthRecord(formData) {
-            try {
-                const response = await fetch('/api/growth-records', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await response.json();
-                alert(data.message);
-                formData.target.reset();
-            } catch (error) {
-                console.error('Error saving growth record:', error);
-                alert('Error saving growth record');
+    try {
+        const response = await fetch('/api/plants', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (response.ok) {
+            alert('Plant note saved successfully');
+            formData.target.reset();
+            // Clear any preview images
+            const previewContainer = formData.target.querySelector('.upload-area');
+            const existingPreview = previewContainer.querySelector('img');
+            if (existingPreview) {
+                existingPreview.remove();
             }
+        } else {
+            throw new Error(data.error || 'Failed to save plant note');
         }
+    } catch (error) {
+        console.error('Error saving plant note:', error);
+        alert(error.message);
+    }
+}
+
+async function saveGrowthRecord(formData) {
+    try {
+        const response = await fetch('/api/growth-records', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (response.ok) {
+            alert('Growth record saved successfully');
+            formData.target.reset();
+            // Clear image previews
+            const previewContainer = document.getElementById('image-previews');
+            previewContainer.innerHTML = '';
+        } else {
+            throw new Error(data.error || 'Failed to save growth record');
+        }
+    } catch (error) {
+        console.error('Error saving growth record:', error);
+        alert(error.message);
+    }
+}
 
         // Timeline Functions
         async function fetchPlantTimeline(plantId) {
@@ -631,10 +723,13 @@ document.getElementById('download-all-data').addEventListener('click', async () 
         const entryElement = document.createElement('div');
         entryElement.className = 'p-4 bg-gray-50 rounded-lg shadow-sm mb-4';
         
+        // Parse the ISO date string
+        const entryDate = new Date(entry.date);
+        
         let content = `
             <div class="flex justify-between items-start mb-2">
                 <div>
-                    <p class="font-medium">${new Date(entry.date).toLocaleDateString()}</p>
+                    <p class="font-medium">${entryDate.toLocaleDateString()} ${entryDate.toLocaleTimeString()}</p>
                     <p class="text-sm text-gray-600">${getEntryTypeDisplay(entry.type)}</p>
                 </div>
             </div>

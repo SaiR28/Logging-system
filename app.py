@@ -202,14 +202,17 @@ def add_plant_note():
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
 
+# Update the growth record endpoint to handle plant creation
 @app.route('/api/growth-records', methods=['POST'])
 def add_growth_record():
     try:
         plant_id = request.form.get('plant_id')
+        # First check if plant exists, if not create it
         plant = Plant.query.filter_by(plant_id=plant_id).first()
-        
         if not plant:
-            return jsonify({'error': 'Plant not found'}), 404
+            plant = Plant(plant_id=plant_id)
+            db.session.add(plant)
+            db.session.flush()  # Get the ID for the new plant
         
         # Save uploaded images
         images = request.files.getlist('images')
@@ -236,6 +239,7 @@ def add_growth_record():
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
 
+
 @app.route('/api/plants/<plant_id>/timeline', methods=['GET'])
 def get_plant_timeline(plant_id):
     try:
@@ -249,7 +253,7 @@ def get_plant_timeline(plant_id):
         # Add plant creation event
         timeline.append({
             'type': 'plant_created',
-            'date': plant.created_at.astimezone(IST).strftime('%Y-%m-%d %H:%M:%S'),
+            'date': plant.created_at.astimezone(IST).isoformat(),
             'notes': None,
             'image': None
         })
@@ -258,7 +262,7 @@ def get_plant_timeline(plant_id):
         for note in plant.notes:
             timeline.append({
                 'type': 'note',
-                'date': note.created_at.astimezone(IST).strftime('%Y-%m-%d %H:%M:%S'),
+                'date': note.created_at.astimezone(IST).isoformat(),
                 'notes': note.note,
                 'image': note.image
             })
@@ -267,7 +271,7 @@ def get_plant_timeline(plant_id):
         for record in plant.growth_records:
             timeline.append({
                 'type': f'{record.type}_record',
-                'date': record.timestamp.astimezone(IST).strftime('%Y-%m-%d %H:%M:%S'),
+                'date': record.timestamp.astimezone(IST).isoformat(),
                 'stage': record.stage,
                 'count': record.count,
                 'notes': record.notes,
@@ -275,7 +279,7 @@ def get_plant_timeline(plant_id):
             })
         
         # Sort timeline by date
-        timeline.sort(key=lambda x: x['date'], reverse=True)
+        timeline.sort(key=lambda x: x['date'])  # Changed to chronological order
         
         return jsonify({
             'plant_id': plant.plant_id,
@@ -283,7 +287,7 @@ def get_plant_timeline(plant_id):
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 400
-
+    
 @app.route('/api/plants/download-all', methods=['GET'])
 def download_all_plants_data():
     try:
