@@ -516,20 +516,20 @@ document.getElementById('growth-tracking-form').addEventListener('submit', async
             });
         });
 
-        // Growth stages
         const floweringStages = [
-            'Bud Formation',
-            'Early Flowering',
-            'Full Bloom',
-            'Post Bloom'
-        ];
+    'Bud Emergence',         // Flower buds are visible but not yet open.
+    'Partial Bloom',         // Some flowers have opened, but petals remain intact.
+    'Full Bloom',            // Most flowers are fully open with intact petals.
+    'Late Bloom'             // Flowers are still open, and petals have not fallen yet.
+];
 
-        const fruitingStages = [
-            'Fruit Set',
-            'Early Development',
-            'Mature Fruit',
-            'Harvest Ready'
-        ];
+const fruitingStages = [
+    'Initial Fruit Set',     // Small fruits start forming while some flowers still retain petals.
+    'Fruit Expansion',       // Fruits begin to grow larger, with petals starting to wither.
+    'Ripening Transition',   // Fruits transition from green to red, softening gradually.
+    'Harvest Ready'          // Fully ripened, red fruits are ready for picking.
+];
+
 
         function updateGrowthStages(type) {
             const stageSelect = document.getElementById('growth-stage');
