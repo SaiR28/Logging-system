@@ -788,32 +788,34 @@ async function saveGrowthRecord(formData) {
 
         // UI Update Functions
         function updateReadingsDisplay(data) {
-            updateReadingSection('tds', data.tds);
-            updateReadingSection('ph', data.ph);
-        }
+    updateReadingSection('tds', data.tds);
+    updateReadingSection('ph', data.ph);
+}
 
-        function updateReadingSection(type, data) {
-            const avgElement = document.getElementById(`${type}-average`);
-            if (avgElement) {
-                avgElement.textContent = type === 'tds' ? 
-                    `${data.average.toFixed(0)} ppm` : 
-                    data.average.toFixed(1);
-            }
+function updateReadingSection(type, data) {
+    const avgElement = document.getElementById(`${type}-average`);
+    if (avgElement) {
+        avgElement.textContent = type === 'tds' ? 
+            `${data.average.toFixed(0)} ppm` : 
+            data.average.toFixed(2);
+    }
 
-            const readingsContainer = document.getElementById(`${type}-readings`);
-            if (readingsContainer) {
-                readingsContainer.innerHTML = '';
-                Object.entries(data.readings).forEach(([rack, value]) => {
-                    const reading = document.createElement('div');
-                    reading.className = 'bg-gray-50 p-3 rounded-lg';
-                    reading.innerHTML = `
-                        <p class="text-sm text-gray-600">Rack ${rack}</p>
-                        <p class="text-xl font-semibold">${type === 'tds' ? value.toFixed(0) + ' ppm' : value.toFixed(1)}</p>
-                    `;
-                    readingsContainer.appendChild(reading);
-                });
-            }
-        }
+    const readingsContainer = document.getElementById(`${type}-readings`);
+    if (readingsContainer) {
+        readingsContainer.innerHTML = '';
+        Object.entries(data.readings).forEach(([rack, value]) => {
+            const reading = document.createElement('div');
+            reading.className = 'bg-gray-50 p-3 rounded-lg';
+            reading.innerHTML = `
+                <p class="text-sm text-gray-600">Rack ${rack}</p>
+                <p class="text-xl font-semibold">${type === 'tds' ? 
+                    value.toFixed(0) + ' ppm' : 
+                    value.toFixed(2)}</p>
+            `;
+            readingsContainer.appendChild(reading);
+        });
+    }
+}
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
