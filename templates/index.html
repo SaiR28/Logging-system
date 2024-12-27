@@ -353,6 +353,126 @@
         
 
     <script>
+document.addEventListener('DOMContentLoaded', () => {
+    fetchLatestReadings();
+    updateMeasurementInputs('tds');
+    updateGrowthStages('flowering');
+    fetchAllPlants();
+
+    // Form submissions
+    document.getElementById('measurement-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const type = document.querySelector('.measurement-type-button.active').dataset.type;
+        const readings = {};
+        document.querySelectorAll('#measurement-inputs input').forEach(input => {
+            readings[input.dataset.rack] = input.value;
+        });
+        await saveMeasurements(type, readings);
+    });
+
+    document.getElementById('plant-notes-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        await savePlantNote(formData);
+        await fetchAllPlants(); // Refresh plants list after adding note
+    });
+
+    // Add this growth tracking form listener
+    document.getElementById('growth-tracking-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+            const formData = new FormData(e.target);
+            const response = await fetch('/api/growth-records', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                alert('Growth record saved successfully');
+                e.target.reset();
+                // Clear image previews
+                const previewContainer = document.getElementById('image-previews');
+                previewContainer.innerHTML = '';
+                previewContainer.className = '';
+                
+                // Reset the add images button text
+                const addButton = document.getElementById('add-images-btn');
+                addButton.textContent = 'Add Images';
+                
+                // Refresh plants list
+                await fetchAllPlants();
+            } else {
+                throw new Error(data.error || 'Failed to save growth record');
+            }
+        } catch (error) {
+            console.error('Error saving growth record:', error);
+            alert(error.message);
+        }
+    });
+
+    document.getElementById('search-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const plantId = document.getElementById('search-input').value.trim();
+        if (plantId) {
+            await fetchPlantTimeline(plantId);
+        } else {
+            alert('Please enter a plant ID');
+        }
+    });
+});
+// Refresh functions for each section
+const sectionRefreshHandlers = {
+    readings: async () => {
+        await fetchLatestReadings();
+        hideTimeline();
+    },
+    search: async () => {
+        await fetchAllPlants();
+        // Don't auto-hide timeline in search section
+        document.getElementById('all-plants-grid').classList.remove('hidden');
+    },
+    measurements: () => {
+        document.getElementById('measurement-form').reset();
+        updateMeasurementInputs(document.querySelector('.measurement-type-button.active').dataset.type);
+        hideTimeline();
+    },
+    plantnotes: () => {
+        document.getElementById('plant-notes-form').reset();
+        const uploadArea = document.querySelector('.upload-area');
+        const existingPreview = uploadArea.querySelector('img:not([alt="Upload icon"])');
+        if (existingPreview) {
+            existingPreview.remove();
+        }
+        hideTimeline();
+    },
+    tracking: () => {
+        document.getElementById('growth-tracking-form').reset();
+        const previewContainer = document.getElementById('image-previews');
+        previewContainer.innerHTML = '';
+        previewContainer.className = '';
+        const addButton = document.getElementById('add-images-btn');
+        addButton.textContent = 'Add Images';
+        updateGrowthStages('flowering');
+        hideTimeline();
+    }
+};
+
+// Helper function to hide timeline and reset search section
+function hideTimeline() {
+    const timeline = document.getElementById('plant-timeline');
+    if (timeline) {
+        timeline.classList.add('hidden');
+    }
+    // Clear search input
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.value = '';
+    }
+}
+
+
         // Function to open image modal
 function openImageModal(imageSrc) {
     const modal = document.getElementById('image-modal');
@@ -453,41 +573,8 @@ document.getElementById('growth-images').addEventListener('change', function() {
     }
 });
 
-// Clear image previews when form is reset
-document.getElementById('growth-tracking-form').addEventListener('reset', () => {
-    const previewContainer = document.getElementById('image-previews');
-    previewContainer.innerHTML = '';
-    previewContainer.className = '';
-    
-    // Reset the add images button text
-    const addButton = document.getElementById('add-images-btn');
-    addButton.textContent = 'Add Images';
-});
+// Remove both existing submit event listeners and replace with a single one
 
-// Update form submission to include proper image handling
-document.getElementById('growth-tracking-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    try {
-        const formData = new FormData(e.target);
-        const response = await fetch('/api/growth-records', {
-            method: 'POST',
-            body: formData
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            alert('Growth record saved successfully');
-            e.target.reset(); // This will trigger the reset event listener above
-        } else {
-            throw new Error(data.error || 'Failed to save growth record');
-        }
-    } catch (error) {
-        console.error('Error saving growth record:', error);
-        alert(error.message);
-    }
-});
         // Section navigation
         document.querySelectorAll('.section-button').forEach(button => {
             button.addEventListener('click', () => {
@@ -516,20 +603,20 @@ document.getElementById('growth-tracking-form').addEventListener('submit', async
             });
         });
 
+        // Growth stages
         const floweringStages = [
-    'Bud Emergence',         // Flower buds are visible but not yet open.
-    'Partial Bloom',         // Some flowers have opened, but petals remain intact.
-    'Full Bloom',            // Most flowers are fully open with intact petals.
-    'Late Bloom'             // Flowers are still open, and petals have not fallen yet.
-];
+            'Bud Formation',
+            'Early Flowering',
+            'Full Bloom',
+            'Post Bloom'
+        ];
 
-const fruitingStages = [
-    'Initial Fruit Set',     // Small fruits start forming while some flowers still retain petals.
-    'Fruit Expansion',       // Fruits begin to grow larger, with petals starting to wither.
-    'Ripening Transition',   // Fruits transition from green to red, softening gradually.
-    'Harvest Ready'          // Fully ripened, red fruits are ready for picking.
-];
-
+        const fruitingStages = [
+            'Fruit Set',
+            'Early Development',
+            'Mature Fruit',
+            'Harvest Ready'
+        ];
 
         function updateGrowthStages(type) {
             const stageSelect = document.getElementById('growth-stage');
@@ -840,11 +927,6 @@ function updateReadingSection(type, data) {
                 await savePlantNote(formData);
             });
 
-            document.getElementById('growth-tracking-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                await saveGrowthRecord(formData);
-            });
 
             document.getElementById('search-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -925,6 +1007,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // ... existing initializations ...
     fetchAllPlants(); // Add this line
 });
+
+
     </script>
 </body>
 </html>
